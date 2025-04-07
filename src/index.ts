@@ -1,1 +1,4 @@
-export const hello = (name: string) => `Hello ${name}`;
+export * from './prover';
+export * from './generate-toml';
+
+export * from './types';

@@ -8,4 +8,6 @@ export default defineConfig({
   treeshake: true,
   dts: true,
   sourcemap: 'inline',
+  target: 'esnext',
+  shims: true,
 });
