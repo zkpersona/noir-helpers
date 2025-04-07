@@ -1,7 +1,7 @@
 {
   "name": "@zkpersona/noir-helpers",
   "version": "0.0.0",
-  "description": "Helpers utilities for Noir circuits",
+  "description": "Helpers utilities for Noir proofs and input generation.",
   "keywords": [
     "noir",
     "noir-lang",
@@ -18,7 +18,7 @@
   "license": "MIT",
   "author": {
     "name": "Vedant Chainani",
-    "email": "vedant@aztecprotocol.com",
+    "email": "vedant@zkpersona.xyz",
     "url": "https://zkpersona.xyz"
   },
   "exports": {
