@@ -1,4 +1,3 @@
-import os from 'node:os';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Prover } from '../src';
@@ -13,7 +12,6 @@ describe('Circuit Proof Verification', () => {
   let prover: Prover;
 
   beforeAll(() => {
-    const threads = os.cpus().length;
     prover = new Prover(circuit as CompiledCircuit, { type: 'all' });
   });
 
