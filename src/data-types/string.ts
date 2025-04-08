@@ -7,7 +7,7 @@ import { U8 } from './integer';
  */
 export class Str {
   /** The underlying string value */
-  private val: string;
+  private readonly val: string;
 
   /**
    * Creates a new string instance with the specified value.
@@ -25,6 +25,15 @@ export class Str {
    */
   value(): string {
     return this.val;
+  }
+
+  /**
+   * Returns the length of the string.
+   *
+   * @returns The number of characters in the string
+   */
+  len(): number {
+    return this.val.length;
   }
 
   /**

@@ -41,7 +41,7 @@ export class Field {
    */
   constructor(input: FieldInput) {
     const parsed = FieldValidator.parse(input);
-    this.value = parsed;
+    this.value = parsed % Field.MODULUS;
   }
 
   [inspect.custom]() {
@@ -124,7 +124,7 @@ export class Field {
    * Converts the field value to an array of bytes in little-endian order.
    *
    * @param length - The number of bytes to extract
-   * @returns An array of bytes (0-255) in little-endian order
+   * @returns An array of bytes in little-endian order
    * @throws Error if length is negative or exceeds Field.MAX_BIT_SIZE or if length is less than the minimum required bytes to represent the value
    */
   toLeBytes<N extends number>(length: N): number[] {
@@ -148,7 +148,7 @@ export class Field {
    * Converts the field value to an array of bytes in big-endian order.
    *
    * @param length - The number of bytes to extract
-   * @returns An array of bytes (0-length) in big-endian order
+   * @returns An array of bytes in big-endian order, sized by the length parameter
    * @throws Error if length is negative, or exceeds maximum bit size or if length is less than the minimum required bytes to represent the value
    */
   toBeBytes<N extends number>(length: N): number[] {
@@ -169,44 +169,66 @@ export class Field {
   }
 
   /**
-   * Calculates the minimum number of digits required to represent the value in the specified radix.
+   * Calculates the minimum length needed to represent a value in a given radix, rounded up to the nearest power of 2.
    *
-   * @param value - The value to convert
-   * @param radix - The radix to use
+   * This function is used internally to determine the minimum number of digits required to represent
+   * a field value in a given base (radix). The result is always rounded up to the nearest power of 2
+   * to ensure consistent sizing for cryptographic operations.
    *
-   * @returns The minimum number of digits required
+   * @param value - The bigint value to calculate the representation length for
+   * @param radix - The base to represent the value in (must be a power of 2)
+   * @returns The minimum number of digits needed to represent the value in the given radix, rounded up to the nearest power of 2
+   * @throws {Error} If the value is negative
+   * @throws {Error} If the radix is not a power of 2
+   * @throws {Error} If the radix is less than 2
    */
   private minRadixLength(value: bigint, radix: number): number {
-    if (radix < 2 || radix > 36) throw new Error('Invalid radix');
-    if (value < 0n) throw new Error('Negative values not supported');
+    if (value < 0n) throw new Error('value must be non-negative');
+    if ((radix & (radix - 1)) !== 0)
+      throw new Error('radix must be a power of 2');
+    if (radix < 2) throw new Error('radix must be >= 2');
+
     if (value === 0n) return 1;
 
-    let length = 0;
-    let v = value;
-    const r = BigInt(radix);
-
-    while (v > 0n) {
-      v /= r;
-      length++;
+    // Compute log2(radix)
+    let radixBits = 0;
+    let r = radix;
+    while ((r >>= 1) > 0) {
+      radixBits++;
     }
 
-    return length;
+    // Count how many bits are needed to represent the value
+    let bits = 0;
+    let v = value;
+    while (v > 0n) {
+      v >>= 1n;
+      bits++;
+    }
+
+    // Compute minimum number of radix digits
+    const rawLen = Math.ceil(bits / radixBits);
+
+    // Round up to the nearest power of 2
+    let rounded = 1;
+    while (rounded < rawLen) {
+      rounded <<= 1;
+    }
+
+    return rounded;
   }
 
   /**
    * Converts the field value to an array of digits in little-endian order using the specified radix.
    *
-   * @param radix - The base to use for conversion (must be a power of 2 between 2 and 256)
+   * @param radix - The base to use for conversion
    * @param length - The number of digits to extract
    * @returns An array of digits in little-endian order
-   * @throws Error if radix is invalid or length is negative or if length is less than the minimum required digits to represent the value
+   * @throws Error if radix is invalid or length is negative or if length is less than the minimum required digits to represent the value, or if length is greater than 256
    */
   toLeRadix(radix: number, length: number): number[] {
-    const required = this.minRadixLength(this.value, radix);
-    if (length < required || length > Field.MAX_BIT_SIZE) {
-      throw new Error(
-        `Length must be between ${required} and ${Field.MAX_BIT_SIZE}`
-      );
+    const minimumRequired = this.minRadixLength(this.value, radix);
+    if (length < minimumRequired || length > 256) {
+      throw new Error(`Length must be between ${minimumRequired} and 256`);
     }
 
     const r = BigInt(radix);
@@ -230,14 +252,12 @@ export class Field {
    * @param radix - The base to use for conversion (must be a power of 2 between 2 and 256)
    * @param length - The number of digits to extract
    * @returns An array of digits in big-endian order
-   * @throws Error if radix is invalid or length is negative or if length is less than the minimum required digits to represent the value
+   * @throws Error if radix is invalid or length is negative or if length is less than the minimum required digits to represent the value, or if length is greater than 256
    */
   toBeRadix(radix: number, length: number): number[] {
-    const required = this.minRadixLength(this.value, radix);
-    if (length < required || length > Field.MAX_BIT_SIZE) {
-      throw new Error(
-        `Length must be between ${required} and ${Field.MAX_BIT_SIZE}`
-      );
+    const minimumRequired = this.minRadixLength(this.value, radix);
+    if (length < minimumRequired || length > 256) {
+      throw new Error(`Length must be between ${minimumRequired} and 256`);
     }
 
     const r = BigInt(radix);
@@ -258,21 +278,29 @@ export class Field {
   /**
    * Raises the field value to the specified power.
    *
-   * @param exponent - The power to raise to (must be a non-negative safe integer)
+   * @param exponent - The power to raise to
    * @returns A new Field instance with the result
-   * @throws Error if exponent is negative or not a safe integer
+   * @throws Error if exponent is negative or greater than equal to 2^32
    */
   pow32(exponent: this): Field {
-    let base = this.value;
-    let exp = exponent.value;
+    const exp = exponent.value;
+    const MAX_EXP = BigInt(2 ** 32);
+    if (exp < 0n)
+      // Noir only supports exponents < 2^32
+      throw new Error('Negative exponents are not allowed');
+    if (exp >= MAX_EXP)
+      throw new Error('Exponent too large: exceeds 2^32 limit');
 
     let result = 1n;
-    base %= Field.MODULUS;
+    let b = this.value % Field.MODULUS;
+    let e = exp;
 
-    while (exp > 0n) {
-      if (exp & 1n) result = (result * base) % Field.MODULUS;
-      base = (base * base) % Field.MODULUS;
-      exp >>= 1n;
+    while (e > 0n) {
+      if (e & 1n) {
+        result = (result * b) % Field.MODULUS;
+      }
+      b = (b * b) % Field.MODULUS;
+      e >>= 1n;
     }
 
     return new Field(result);
@@ -469,34 +497,6 @@ export class Field {
   clone(): Field {
     return new Field(this.value);
   }
-
-  // /**
-  //  * Creates a Field instance from an array of bytes in little-endian order.
-  //  *
-  //  * @param bytes - The bytes to convert (0-255)
-  //  * @returns A new Field instance
-  //  */
-  // static fromLeBytes(bytes: number[]): Field {
-  //   let value = 0n;
-  //   for (let i = 0; i < bytes.length; i++) {
-  //     value |= BigInt(bytes[i]) << (8n * BigInt(i));
-  //   }
-  //   return new Field(value);
-  // }
-
-  // /**
-  //  * Creates a Field instance from an array of bytes in big-endian order.
-  //  *
-  //  * @param bytes - The bytes to convert (0-255)
-  //  * @returns A new Field instance
-  //  */
-  // static fromBeBytes(bytes: number[]): Field {
-  //   let value = 0n;
-  //   for (const byte of bytes) {
-  //     value = (value << 8n) | BigInt(byte);
-  //   }
-  //   return new Field(value);
-  // }
 
   static modBeBits(): Bit[] {
     return [

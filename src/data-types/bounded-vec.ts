@@ -25,6 +25,9 @@ export class BoundedVec<T extends DataType> {
    * @throws {Error} If maxSize is negative
    */
   constructor(maxSize: number, defaultValueFactory: () => T) {
+    if (maxSize < 0) {
+      throw new Error('Max size must be non-negative');
+    }
     this.maxSize = maxSize;
     this.items = Array.from({ length: maxSize }, defaultValueFactory);
     this.length = 0;

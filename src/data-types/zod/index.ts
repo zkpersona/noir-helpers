@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-const MAX_FIELD = 2n ** 254n - 1n;
+const MAX_FIELD_SIZE =
+  21888242871839275222246405745257275088548364400416034343698204186575808495616n;
 
 const fieldInputSchema = z.union([
   z.number().int('Field input must be an integer'),
@@ -20,7 +21,10 @@ export const FieldValidator = fieldInputSchema
     }
     return BigInt(val);
   })
-  .refine((n) => n <= MAX_FIELD, 'Field value must be between 0 and 2^254 - 1');
+  .refine(
+    (n) => n <= MAX_FIELD_SIZE && n >= -MAX_FIELD_SIZE,
+    'Field value must be between -MAX_FIELD_SIZE and MAX_FIELD_SIZE'
+  );
 
 export const IntegerValidator = (min: bigint, max: bigint) =>
   fieldInputSchema

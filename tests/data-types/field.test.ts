@@ -21,14 +21,18 @@ describe('Field Data Type Tests', () => {
     expect(() => new Field(1.5)).toThrowError('Field input must be an integer');
   });
 
-  it('should take values up to 2 ^ 254', () => {
-    const field = new Field(2n ** 254n - 1n);
-    expect(field.toString()).equals((2n ** 254n - 1n).toString());
+  it('should take values up to MAX_FIELD_SIZE', () => {
+    const field = new Field(
+      21888242871839275222246405745257275088548364400416034343698204186575808495616n
+    );
+    expect(field.toString()).equals(
+      '21888242871839275222246405745257275088548364400416034343698204186575808495616'.toString()
+    );
   });
 
   it('should throw error for value > 2^254', () => {
-    expect(() => new Field(2n ** 256n)).toThrowError(
-      'Field value must be between 0 and 2^254 - 1'
+    expect(() => new Field(2n ** 254n)).toThrowError(
+      'Field value must be between -MAX_FIELD_SIZE and MAX_FIELD_SIZE'
     );
   });
 
@@ -86,27 +90,34 @@ describe('Field Data Type Tests', () => {
 
   it('should correctly compute little-endian radix conversion', () => {
     const field = new Field(300n);
-    const digits = field.toLeRadix(2, 9);
-    expect(digits).toEqual([0, 0, 1, 1, 0, 1, 0, 0, 1]);
+    const digits = field.toLeRadix(2, 16);
+    expect(digits).toEqual([0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('should throw error for radix not a power of 2', () => {
+    const field = new Field(300n);
+    expect(() => field.toLeRadix(3, 9)).toThrowError(
+      'radix must be a power of 2'
+    );
   });
 
   it('should throw error for little-endian radix conversion with invalid length', () => {
     const field = new Field(300n);
     expect(() => field.toLeRadix(2, 8)).toThrowError(
-      'Length must be between 9 and 254'
+      'Length must be between 16 and 256'
     );
   });
 
   it('should correctly compute big-endian radix conversion', () => {
     const field = new Field(300n);
-    const digits = field.toBeRadix(2, 9);
-    expect(digits).toEqual([1, 0, 0, 1, 0, 1, 1, 0, 0]);
+    const digits = field.toBeRadix(2, 16);
+    expect(digits).toEqual([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0]);
   });
 
   it('should throw error for big-endian radix conversion with invalid length', () => {
     const field = new Field(300n);
     expect(() => field.toBeRadix(2, 8)).toThrowError(
-      'Length must be between 9 and 254'
+      'Length must be between 16 and 256'
     );
   });
 
@@ -118,16 +129,26 @@ describe('Field Data Type Tests', () => {
   });
 
   it('should correctly compute power for large values', () => {
-    const base = new Field(2000000000n);
-    const exp = new Field(2000000000n);
+    const base = new Field(2);
+    const exp = new Field(2 ** 32 - 1);
     const res = base.pow32(exp);
     expect(res.toHex()).equals(
-      '0x0acebbaf4c77ac3e5ef3a6bbdef2c677a2b86c827ff5e99e6f8d89bd10a4d3d3'
+      '0x04aa46b15346c19ec569802276feb4778e1921469782ef1287716e7712fb8f70'
+    );
+  });
+
+  it('should throw error exponents >= 2^32', () => {
+    const base = new Field(2);
+    const exp = new Field(2 ** 32);
+    expect(() => base.pow32(exp)).toThrowError(
+      'Exponent too large: exceeds 2^32 limit'
     );
   });
 
   it('should assert max bit size', () => {
-    const field = new Field(2n ** 254n - 1n);
+    const field = new Field(
+      21888242871839275222246405745257275088548364400416034343698204186575808495616n
+    );
     expect(() => field.assertMaxBitSize(254)).not.toThrow();
   });
 

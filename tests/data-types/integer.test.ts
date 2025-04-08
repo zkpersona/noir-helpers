@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { I8, I16, I32, I64, U8, U16, U32, U64 } from '../../src';
 
 describe('Integer Data Type Tests', () => {
-  it('should create a Unsigned Numbers', () => {
+  it('should create unsigned integers', () => {
     const a = new U8(111);
     expect(a.toString()).toBe('111');
 
@@ -16,7 +16,7 @@ describe('Integer Data Type Tests', () => {
     expect(d.toString()).toBe('11111111111111111');
   });
 
-  it('should create a Signed Numbers', () => {
+  it('should create signed integers', () => {
     const a = new I8(-111);
     expect(a.toString()).toBe('-111');
     const b = new I16(-11111);

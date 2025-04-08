@@ -47,7 +47,9 @@ export function toJSON(value: DataType): object | string | boolean {
     }
     return result;
   }
-  throw new Error('Invalid value type');
+  throw new Error(
+    `Invalid value type: ${value === null ? 'null' : typeof value}`
+  );
 }
 
 export * from './field';
