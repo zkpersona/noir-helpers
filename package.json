@@ -29,9 +29,7 @@
   },
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
-  "files": [
-    "dist/**"
-  ],
+  "files": ["dist/**"],
   "scripts": {
     "build": "tsup",
     "dev": "vitest",
@@ -54,6 +52,7 @@
   "dependencies": {
     "@aztec/bb.js": "^0.84.0",
     "@noir-lang/noir_js": "^1.0.0-beta.3",
-    "json2toml": "^6.1.1"
+    "json2toml": "^6.1.1",
+    "zod": "^3.24.2"
   }
 }
