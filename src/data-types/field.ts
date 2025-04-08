@@ -403,13 +403,9 @@ export class Field {
    *
    * @param input - The value to subtract (can be Field, number, string, or bigint)
    * @returns A new Field instance with the difference
-   * @throws Error if the result would be negative
    */
   sub(input: Field | number | string | bigint): Field {
     const otherField = input instanceof Field ? input : new Field(input);
-    if (this.value < otherField.value) {
-      throw new Error('Result would be negative');
-    }
     const res = (this.value - otherField.value + Field.MODULUS) % Field.MODULUS;
     return new Field(res);
   }
