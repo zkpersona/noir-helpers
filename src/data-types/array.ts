@@ -11,7 +11,7 @@ export class FixedSizeArray<T extends DataType> {
   /** The fixed length of the array */
   private readonly length: number;
   /** Internal storage for array elements */
-  private readonly items: T[];
+  private items: T[];
 
   /**
    * Creates a new fixed-size array with the specified length and initial items.

@@ -8,7 +8,7 @@ import type { IntegerInput } from './zod/index';
  *
  * @template T - The concrete integer type extending this class
  */
-abstract class AbstractInteger extends Field {
+export abstract class AbstractInteger extends Field {
   /** Maximum value that can be represented by this integer type */
   protected static MAX_VALUE: bigint;
   /** Minimum value that can be represented by this integer type */
