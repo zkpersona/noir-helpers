@@ -382,7 +382,8 @@ export class Field {
     if (this.value < otherField.value) {
       throw new Error('Result would be negative');
     }
-    return new Field(this.value - otherField.value);
+    const res = (this.value - otherField.value + Field.MODULUS) % Field.MODULUS;
+    return new Field(res);
   }
 
   /**
@@ -393,7 +394,33 @@ export class Field {
    */
   mul(input: Field | number | string | bigint): Field {
     const otherField = input instanceof Field ? input : new Field(input);
-    return new Field(this.value * otherField.value);
+    return new Field((this.value * otherField.value) % Field.MODULUS);
+  }
+
+  /**
+   * Computes the modular inverse of a field element.
+   *
+   * @param a - The field element to compute the inverse of
+   * @param mod - The modulus to use for the computation
+   *
+   * @returns The modular inverse of the field element
+   */
+  private modInv(a: bigint, mod: bigint): bigint {
+    let t = 0n;
+    let newT = 1n;
+    let r = mod;
+    let newR = a;
+
+    while (newR !== 0n) {
+      const quotient = r / newR;
+      [t, newT] = [newT, t - quotient * newT];
+      [r, newR] = [newR, r - quotient * newR];
+    }
+
+    if (r > 1n) throw new Error('Input is not invertible');
+    if (t < 0n) t += mod;
+
+    return t;
   }
 
   /**
@@ -405,10 +432,16 @@ export class Field {
    */
   div(input: Field | number | string | bigint): Field {
     const otherField = input instanceof Field ? input : new Field(input);
+
     if (otherField.value === 0n) {
       throw new Error('Division by zero');
     }
-    return new Field(this.value / otherField.value);
+
+    // Compute modular inverse of divisor
+    const inv = this.modInv(otherField.value, Field.MODULUS);
+    const result = (this.value * inv) % Field.MODULUS;
+
+    return new Field(result);
   }
 
   /**
