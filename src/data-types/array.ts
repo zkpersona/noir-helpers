@@ -1,20 +1,21 @@
 import { type DataType, toJSON } from '.';
 
 /**
- * A fixed-size array implementation that stores elements of a specific data type.
- * This class provides type-safe access to array elements and ensures the array size
- * remains constant throughout its lifetime.
+ * A fixed-size array implementation that maintains a constant length throughout its lifetime.
+ * This class provides a type-safe, immutable-length array with bounds checking and
+ * common array operations. The internal storage is protected from external modification.
  *
  * @template T - The type of elements stored in the array, must extend DataType
  */
 export class FixedSizeArray<T extends DataType> {
   /** The fixed length of the array */
-  protected length: number;
+  private readonly length: number;
   /** Internal storage for array elements */
-  protected items: T[];
+  private readonly items: T[];
 
   /**
    * Creates a new fixed-size array with the specified length and initial items.
+   * The array length is immutable after construction.
    *
    * @param length - The fixed length of the array
    * @param items - Initial items to populate the array
@@ -22,10 +23,12 @@ export class FixedSizeArray<T extends DataType> {
    */
   constructor(length: number, items: T[]) {
     if (length !== items.length) {
-      throw new Error('Length mismatch');
+      throw new Error(
+        `Length mismatch: expected ${length}, got ${items.length}`
+      );
     }
     this.length = length;
-    this.items = items;
+    this.items = [...items];
   }
 
   /**
@@ -38,14 +41,13 @@ export class FixedSizeArray<T extends DataType> {
   }
 
   /**
-   * Returns the internal storage array containing all elements.
-   * Note: This returns a reference to the internal array, modifications to the
-   * returned array will affect the original storage.
+   * Returns a copy of the array's elements.
+   * This method creates a new array to prevent external modification of the internal storage.
    *
-   * @returns The internal array containing all elements
+   * @returns A new array containing all elements
    */
-  storage(): T[] {
-    return this.items;
+  toArray(): T[] {
+    return [...this.items];
   }
 
   /**
@@ -53,13 +55,26 @@ export class FixedSizeArray<T extends DataType> {
    *
    * @param index - The zero-based index of the element to retrieve
    * @returns The element at the specified index
-   * @throws {Error} If the index is out of bounds (index >= length)
+   * @throws {Error} If the index is out of bounds (index < 0 or index >= length)
    */
   get(index: number): T {
-    if (index >= this.length) {
-      throw new Error('Index out of bounds');
+    if (index < 0 || index >= this.length) {
+      throw new Error(`Index ${index} out of bounds`);
     }
     return this.items[index];
+  }
+
+  /**
+   * Retrieves the element at the specified index, supporting negative indices.
+   * Negative indices count from the end of the array (-1 is the last element).
+   *
+   * @param index - The index of the element to retrieve (can be negative)
+   * @returns The element at the specified index
+   * @throws {Error} If the index is out of bounds after adjustment
+   */
+  at(index: number): T {
+    const adjustedIndex = index < 0 ? this.length + index : index;
+    return this.get(adjustedIndex);
   }
 
   /**
@@ -67,13 +82,34 @@ export class FixedSizeArray<T extends DataType> {
    *
    * @param index - The zero-based index where the element should be set
    * @param item - The new value to set at the specified index
-   * @throws {Error} If the index is out of bounds (index >= length)
+   * @throws {Error} If the index is out of bounds (index < 0 or index >= length)
    */
   set(index: number, item: T): void {
-    if (index >= this.length) {
-      throw new Error('Index out of bounds');
+    if (index < 0 || index >= this.length) {
+      throw new Error(`Index ${index} out of bounds`);
     }
     this.items[index] = item;
+  }
+
+  /**
+   * Executes a provided function once for each array element.
+   *
+   * @param callback - Function to execute for each element, taking the element and its index
+   */
+  forEach(callback: (item: T, index: number) => void): void {
+    this.items.forEach(callback);
+  }
+
+  /**
+   * Creates a new array populated with the results of calling a provided function
+   * on every element in the array.
+   *
+   * @template U - The type of elements in the resulting array
+   * @param callback - Function to execute for each element, taking the element and its index
+   * @returns A new array with each element being the result of the callback function
+   */
+  map<U>(callback: (item: T, index: number) => U): U[] {
+    return this.items.map(callback);
   }
 
   /**
@@ -82,11 +118,7 @@ export class FixedSizeArray<T extends DataType> {
    *
    * @returns An array containing the JSON representation of each element
    */
-  toJSON(): (string | object)[] {
-    const res = [];
-    for (const item of this.items) {
-      res.push(toJSON(item));
-    }
-    return res;
+  toJSON(): ReturnType<typeof toJSON>[] {
+    return this.items.map(toJSON);
   }
 }
