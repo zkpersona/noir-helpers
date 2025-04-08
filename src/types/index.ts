@@ -54,3 +54,5 @@ export type ProvingBackend = {
  * @description The value of an input to a circuit.
  */
 export type InputValue = InputMap[string];
+
+export * from './data-types';
