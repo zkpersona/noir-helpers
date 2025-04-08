@@ -49,6 +49,28 @@ export class Field {
   }
 
   /**
+   * Internal helper function to compute the log2 of a large value (0-2^254).
+   *
+   * @param value - The value to compute the log2 of
+   * @returns The log2 of the value
+   */
+  private log2(value: bigint): bigint {
+    if (value <= 0n) {
+      throw new Error('log2 is undefined for non-positive values');
+    }
+
+    let result = 0n;
+    let v = value;
+
+    while (v > 1n) {
+      v >>= 1n;
+      result += 1n;
+    }
+
+    return result;
+  }
+
+  /**
    * Converts the field value to an array of bits in little-endian order.
    *
    * @param length - The number of bits to extract
@@ -56,7 +78,8 @@ export class Field {
    * @throws Error if length is negative or exceeds Field.MAX_BIT_SIZE or if length is less than the minimum required bits to represent the value
    */
   toLeBits<N extends number>(length: N): Bit[] {
-    const minLengthRequired = Math.ceil(Math.log2(Number(this.value) + 1));
+    const minLengthRequired =
+      this.value === 0n ? 0 : Math.ceil(Number(this.log2(this.value)) + 1);
     if (length < minLengthRequired || length > Field.MAX_BIT_SIZE) {
       throw new Error(
         `Length must be between ${minLengthRequired} and ${Field.MAX_BIT_SIZE}`
@@ -80,7 +103,8 @@ export class Field {
    * @throws Error if length is negative or exceeds Field.MAX_BIT_SIZE or if length is less than the minimum required bits to represent the value
    */
   toBeBits<N extends number>(length: N): Bit[] {
-    const minLengthRequired = Math.ceil(Math.log2(Number(this.value) + 1));
+    const minLengthRequired =
+      this.value === 0n ? 0 : Math.ceil(Number(this.log2(this.value)) + 1);
     if (length < minLengthRequired || length > Field.MAX_BIT_SIZE) {
       throw new Error(
         `Length must be between ${minLengthRequired} and ${Field.MAX_BIT_SIZE}`
