@@ -1,5 +1,6 @@
 import type { Bit } from '~/types';
 import { type FieldInput, FieldValidator } from './zod';
+import { inspect } from 'node:util';
 
 /**
  * Represents a finite field element used in noir.
@@ -23,13 +24,14 @@ import { type FieldInput, FieldValidator } from './zod';
  */
 export class Field {
   /** The internal bigint representation of the field value */
-  private readonly value: bigint;
+  protected readonly value: bigint;
 
   /** The maximum bit size of a Field */
   static readonly MAX_BIT_SIZE = 254n;
 
-  /** The maximum value that can be represented by a Field */
-  static readonly MAX_VALUE = 2n ** Field.MAX_BIT_SIZE - 1n;
+  /** The modulus of the field */
+  static readonly MODULUS =
+    21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
   /**
    * Creates a new Field instance from various input types.
@@ -42,18 +44,31 @@ export class Field {
     this.value = parsed;
   }
 
+  [inspect.custom]() {
+    return `Field<${this.value.toString()}>`;
+  }
+
   /**
    * Converts the field value to an array of bits in little-endian order.
    *
    * @param length - The number of bits to extract
    * @returns An array of bits (0 or 1) in little-endian order
-   * @throws Error if length is negative
+   * @throws Error if length is negative or exceeds Field.MAX_BIT_SIZE or if length is less than the minimum required bits to represent the value
    */
   toLeBits<N extends number>(length: N): Bit[] {
+    const minLengthRequired = Math.ceil(Math.log2(Number(this.value) + 1));
+    if (length < minLengthRequired || length > Field.MAX_BIT_SIZE) {
+      throw new Error(
+        `Length must be between ${minLengthRequired} and ${Field.MAX_BIT_SIZE}`
+      );
+    }
+
     const bits: Bit[] = [];
     for (let i = 0; i < length; i++) {
-      bits.push(Number((this.value >> BigInt(i)) & 1n) as Bit);
+      const bit = (this.value >> BigInt(i)) & 1n;
+      bits.push(Number(bit) as Bit);
     }
+
     return bits;
   }
 
@@ -62,15 +77,23 @@ export class Field {
    *
    * @param length - The number of bits to extract
    * @returns An array of bits (0 or 1) in big-endian order
-   * @throws Error if length is negative
+   * @throws Error if length is negative or exceeds Field.MAX_BIT_SIZE or if length is less than the minimum required bits to represent the value
    */
   toBeBits<N extends number>(length: N): Bit[] {
-    const bits: Bit[] = [];
-    const binary = this.value.toString(2).padStart(length, '0');
-    for (let i = 0; i < length; i++) {
-      bits.push(i < binary.length ? (Number(binary.at(1 + i)) as Bit) : 0);
+    const minLengthRequired = Math.ceil(Math.log2(Number(this.value) + 1));
+    if (length < minLengthRequired || length > Field.MAX_BIT_SIZE) {
+      throw new Error(
+        `Length must be between ${minLengthRequired} and ${Field.MAX_BIT_SIZE}`
+      );
     }
-    return bits.reverse();
+
+    const bits: Bit[] = [];
+    for (let i = length - 1; i >= 0; i--) {
+      const bit = (this.value >> BigInt(i)) & 1n;
+      bits.push(Number(bit) as Bit);
+    }
+
+    return bits;
   }
 
   /**
@@ -78,15 +101,22 @@ export class Field {
    *
    * @param length - The number of bytes to extract
    * @returns An array of bytes (0-255) in little-endian order
-   * @throws Error if length is negative
+   * @throws Error if length is negative or exceeds Field.MAX_BIT_SIZE or if length is less than the minimum required bytes to represent the value
    */
   toLeBytes<N extends number>(length: N): number[] {
-    const bytes: number[] = [];
-    let val = this.value;
-    for (let i = 0; i < length; i++) {
-      bytes.push(Number(val & 0xffn));
-      val >>= 8n;
+    const minLengthRequired = Math.ceil(this.value.toString(2).length / 8);
+    if (length < minLengthRequired || length > Field.modLeBytes().length) {
+      throw new Error(
+        `Length must be between ${minLengthRequired} and ${Field.modLeBytes().length}`
+      );
     }
+    const bytes: number[] = [];
+
+    for (let i = 0; i < length; i++) {
+      const byte = Number((this.value >> BigInt(8 * i)) & 0xffn);
+      bytes.push(byte);
+    }
+
     return bytes;
   }
 
@@ -94,19 +124,49 @@ export class Field {
    * Converts the field value to an array of bytes in big-endian order.
    *
    * @param length - The number of bytes to extract
-   * @returns An array of bytes (0-255) in big-endian order
-   * @throws Error if length is negative
+   * @returns An array of bytes (0-length) in big-endian order
+   * @throws Error if length is negative, or exceeds maximum bit size or if length is less than the minimum required bytes to represent the value
    */
   toBeBytes<N extends number>(length: N): number[] {
-    const bytes: number[] = [];
-    let val = this.value;
-    const totalBytes = Math.ceil(val.toString(16).length / 2);
-    for (let i = 0; i < totalBytes; i++) {
-      bytes.unshift(Number(val & 0xffn));
-      val >>= 8n;
+    const minLengthRequired = Math.ceil(this.value.toString(2).length / 8);
+    if (length < minLengthRequired || length > Field.modBeBytes().length) {
+      throw new Error(
+        `Length must be between ${minLengthRequired} and ${Field.modBeBytes().length}`
+      );
     }
-    while (bytes.length < length) bytes.unshift(0);
-    return bytes.slice(-length);
+    const bytes: number[] = [];
+
+    for (let i = length - 1; i >= 0; i--) {
+      const byte = Number((this.value >> BigInt(8 * i)) & 0xffn);
+      bytes.push(byte);
+    }
+
+    return bytes;
+  }
+
+  /**
+   * Calculates the minimum number of digits required to represent the value in the specified radix.
+   *
+   * @param value - The value to convert
+   * @param radix - The radix to use
+   *
+   * @returns The minimum number of digits required
+   */
+  private minRadixLength(value: bigint, radix: number): number {
+    if (radix < 2 || radix > 36) throw new Error('Invalid radix');
+    if (value < 0n) throw new Error('Negative values not supported');
+    if (value === 0n) return 1;
+
+    let length = 0;
+    let v = value;
+    const r = BigInt(radix);
+
+    while (v > 0n) {
+      v /= r;
+      length++;
+    }
+
+    return length;
   }
 
   /**
@@ -115,19 +175,28 @@ export class Field {
    * @param radix - The base to use for conversion (must be a power of 2 between 2 and 256)
    * @param length - The number of digits to extract
    * @returns An array of digits in little-endian order
-   * @throws Error if radix is invalid or length is negative
+   * @throws Error if radix is invalid or length is negative or if length is less than the minimum required digits to represent the value
    */
   toLeRadix(radix: number, length: number): number[] {
-    this.validateRadix(radix);
-    const digits: number[] = [];
-    let val = this.value;
-    const mask = BigInt(radix - 1);
-    const shift = BigInt(Math.log2(radix));
-
-    for (let i = 0; i < length; i++) {
-      digits.push(Number(val & mask));
-      val >>= shift;
+    const required = this.minRadixLength(this.value, radix);
+    if (length < required || length > Field.MAX_BIT_SIZE) {
+      throw new Error(
+        `Length must be between ${required} and ${Field.MAX_BIT_SIZE}`
+      );
     }
+
+    const r = BigInt(radix);
+    const digits: number[] = [];
+
+    let v = this.value;
+    for (let i = 0; i < length; i++) {
+      digits.push(Number(v % r));
+      v /= r;
+    }
+
+    // Pad with zeroes if needed
+    while (digits.length < length) digits.push(0);
+
     return digits;
   }
 
@@ -137,21 +206,29 @@ export class Field {
    * @param radix - The base to use for conversion (must be a power of 2 between 2 and 256)
    * @param length - The number of digits to extract
    * @returns An array of digits in big-endian order
-   * @throws Error if radix is invalid or length is negative
+   * @throws Error if radix is invalid or length is negative or if length is less than the minimum required digits to represent the value
    */
   toBeRadix(radix: number, length: number): number[] {
-    this.validateRadix(radix);
-    const digits: number[] = [];
-    let val = this.value;
-    const mask = BigInt(radix - 1);
-    const shift = BigInt(Math.log2(radix));
-
-    while (val > 0n) {
-      digits.unshift(Number(val & mask));
-      val >>= shift;
+    const required = this.minRadixLength(this.value, radix);
+    if (length < required || length > Field.MAX_BIT_SIZE) {
+      throw new Error(
+        `Length must be between ${required} and ${Field.MAX_BIT_SIZE}`
+      );
     }
-    while (digits.length < length) digits.unshift(0);
-    return digits.slice(-length);
+
+    const r = BigInt(radix);
+    const digits: number[] = [];
+
+    let v = this.value;
+    for (let i = 0; i < length; i++) {
+      digits.push(Number(v % r));
+      v /= r;
+    }
+
+    // Pad with leading zeroes if needed, then reverse for BE
+    while (digits.length < length) digits.push(0);
+
+    return digits.reverse();
   }
 
   /**
@@ -161,11 +238,20 @@ export class Field {
    * @returns A new Field instance with the result
    * @throws Error if exponent is negative or not a safe integer
    */
-  pow32(exponent: number): Field {
-    if (!Number.isSafeInteger(exponent) || exponent < 0) {
-      throw new Error('Exponent must be a non-negative safe integer');
+  pow32(exponent: this): Field {
+    let base = this.value;
+    let exp = exponent.value;
+
+    let result = 1n;
+    base %= Field.MODULUS;
+
+    while (exp > 0n) {
+      if (exp & 1n) result = (result * base) % Field.MODULUS;
+      base = (base * base) % Field.MODULUS;
+      exp >>= 1n;
     }
-    return new Field(this.value ** BigInt(exponent));
+
+    return new Field(result);
   }
 
   /**
@@ -175,7 +261,18 @@ export class Field {
    * @throws Error if the field value exceeds the specified bit size
    */
   assertMaxBitSize(bitSize: number): void {
-    const bitLength = this.value.toString(2).length;
+    if (this.value < 0n) {
+      throw new Error('Negative field values are not allowed');
+    }
+
+    let bitLength = 0;
+    let v = this.value;
+
+    while (v > 0n) {
+      v >>= 1n;
+      bitLength++;
+    }
+
     if (bitLength > bitSize) {
       throw new Error(`Field value exceeds ${bitSize} bits`);
     }
@@ -188,17 +285,7 @@ export class Field {
    * @returns 0 if the value is even, 1 if odd
    */
   sgn0(): Bit {
-    return Number(this.value % 2n) as Bit;
-  }
-
-  /**
-   * Compares this field value with another to determine if it is less than.
-   *
-   * @param other - The field to compare against
-   * @returns true if this value is less than the other value
-   */
-  lt(other: Field): boolean {
-    return this.value < other.value;
+    return Number(this.value & 1n) as Bit;
   }
 
   /**
@@ -226,10 +313,9 @@ export class Field {
    * @returns The field value as a hexadecimal string with '0x' prefix
    */
   toHex(length?: number): string {
+    const len = length ?? 32;
     let hex = this.value.toString(16);
-    if (length) {
-      hex = hex.padStart(length * 2, '0');
-    }
+    hex = hex.padStart(len * 2, '0');
     return `0x${hex}`;
   }
 
@@ -240,8 +326,10 @@ export class Field {
    * @returns true if the values are equal
    */
   equals(other: Field | number | string | bigint): boolean {
-    const otherField = other instanceof Field ? other : new Field(other);
-    return this.value === otherField.value;
+    if (other instanceof Field) {
+      return this.value === other.value;
+    }
+    return this.value === BigInt(other);
   }
 
   /**
@@ -251,8 +339,11 @@ export class Field {
    * @returns A new Field instance with the sum
    */
   add(input: Field | number | string | bigint): Field {
-    const otherField = input instanceof Field ? input : new Field(input);
-    return new Field(this.value + otherField.value);
+    const rhs = input instanceof Field ? input.value : BigInt(input);
+    const sum = this.value + rhs;
+    const reduced = sum >= Field.MODULUS ? sum - Field.MODULUS : sum;
+
+    return new Field(reduced);
   }
 
   /**
@@ -262,7 +353,7 @@ export class Field {
    * @returns A new Field instance with the difference
    * @throws Error if the result would be negative
    */
-  subtract(input: Field | number | string | bigint): Field {
+  sub(input: Field | number | string | bigint): Field {
     const otherField = input instanceof Field ? input : new Field(input);
     if (this.value < otherField.value) {
       throw new Error('Result would be negative');
@@ -276,7 +367,7 @@ export class Field {
    * @param input - The value to multiply by (can be Field, number, string, or bigint)
    * @returns A new Field instance with the product
    */
-  multiply(input: Field | number | string | bigint): Field {
+  mul(input: Field | number | string | bigint): Field {
     const otherField = input instanceof Field ? input : new Field(input);
     return new Field(this.value * otherField.value);
   }
@@ -288,7 +379,7 @@ export class Field {
    * @returns A new Field instance with the quotient
    * @throws Error if dividing by zero
    */
-  divide(input: Field | number | string | bigint): Field {
+  div(input: Field | number | string | bigint): Field {
     const otherField = input instanceof Field ? input : new Field(input);
     if (otherField.value === 0n) {
       throw new Error('Division by zero');
@@ -304,11 +395,13 @@ export class Field {
    * @throws Error if dividing by zero
    */
   mod(input: Field | number | string | bigint): Field {
-    const otherField = input instanceof Field ? input : new Field(input);
-    if (otherField.value === 0n) {
-      throw new Error('Modulus by zero');
+    const rhs = input instanceof Field ? input.value : new Field(input).value;
+
+    if (rhs === 0n) {
+      throw new Error('Cannot modulo by zero');
     }
-    return new Field(this.value % otherField.value);
+    const result = ((this.value % rhs) + rhs) % rhs;
+    return new Field(result);
   }
 
   /**
@@ -320,43 +413,81 @@ export class Field {
     return new Field(this.value);
   }
 
-  /**
-   * Validates that a radix is a power of 2 between 2 and 256.
-   *
-   * @param radix - The radix to validate
-   * @throws Error if the radix is invalid
-   */
-  private validateRadix(radix: number): void {
-    if (radix <= 1 || radix > 256 || (radix & (radix - 1)) !== 0) {
-      throw new Error('Radix must be a power of 2 between 2 and 256');
-    }
+  // /**
+  //  * Creates a Field instance from an array of bytes in little-endian order.
+  //  *
+  //  * @param bytes - The bytes to convert (0-255)
+  //  * @returns A new Field instance
+  //  */
+  // static fromLeBytes(bytes: number[]): Field {
+  //   let value = 0n;
+  //   for (let i = 0; i < bytes.length; i++) {
+  //     value |= BigInt(bytes[i]) << (8n * BigInt(i));
+  //   }
+  //   return new Field(value);
+  // }
+
+  // /**
+  //  * Creates a Field instance from an array of bytes in big-endian order.
+  //  *
+  //  * @param bytes - The bytes to convert (0-255)
+  //  * @returns A new Field instance
+  //  */
+  // static fromBeBytes(bytes: number[]): Field {
+  //   let value = 0n;
+  //   for (const byte of bytes) {
+  //     value = (value << 8n) | BigInt(byte);
+  //   }
+  //   return new Field(value);
+  // }
+
+  static modBeBits(): Bit[] {
+    return [
+      1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1,
+      1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0,
+      0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0,
+      0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0,
+      0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0,
+      1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0,
+      0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0,
+      1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1,
+      1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1,
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 1,
+    ];
   }
 
-  /**
-   * Creates a Field instance from an array of bytes in little-endian order.
-   *
-   * @param bytes - The bytes to convert (0-255)
-   * @returns A new Field instance
-   */
-  static fromLeBytes(bytes: number[]): Field {
-    let value = 0n;
-    for (let i = 0; i < bytes.length; i++) {
-      value |= BigInt(bytes[i]) << (8n * BigInt(i));
-    }
-    return new Field(value);
+  static modBeBytes(): number[] {
+    return [
+      48, 100, 78, 114, 225, 49, 160, 41, 184, 80, 69, 182, 129, 129, 88, 93,
+      40, 51, 232, 72, 121, 185, 112, 145, 67, 225, 245, 147, 240, 0, 0, 1,
+    ];
   }
 
-  /**
-   * Creates a Field instance from an array of bytes in big-endian order.
-   *
-   * @param bytes - The bytes to convert (0-255)
-   * @returns A new Field instance
-   */
-  static fromBeBytes(bytes: number[]): Field {
-    let value = 0n;
-    for (const byte of bytes) {
-      value = (value << 8n) | BigInt(byte);
-    }
-    return new Field(value);
+  static modLeBits(): Bit[] {
+    return [
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,
+      0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+      0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1,
+      0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0,
+      1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
+      0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1,
+      0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0,
+      1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+      0, 0, 1, 1,
+    ];
+  }
+
+  static modLeBytes(): number[] {
+    return [
+      1, 0, 0, 240, 147, 245, 225, 67, 145, 112, 185, 121, 72, 232, 51, 40, 93,
+      88, 129, 129, 182, 69, 80, 184, 41, 160, 49, 225, 114, 78, 100, 48,
+    ];
+  }
+
+  static modNumBits(): bigint {
+    return Field.MAX_BIT_SIZE;
   }
 }
