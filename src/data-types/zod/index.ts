@@ -3,10 +3,7 @@ import { z } from 'zod';
 const MAX_FIELD = 2n ** 254n - 1n;
 
 const fieldInputSchema = z.union([
-  z
-    .number()
-    .int('Field input must be an integer')
-    .nonnegative('Field input must be non-negative'),
+  z.number().int('Field input must be an integer'),
   z.bigint(),
   z
     .string()
@@ -26,12 +23,7 @@ export const FieldValidator = fieldInputSchema
   .refine((n) => n <= MAX_FIELD, 'Field value must be between 0 and 2^254 - 1');
 
 export const IntegerValidator = (min: bigint, max: bigint) =>
-  z
-    .union([
-      z.number().int('Input must be a integer'),
-      z.string().regex(/^-?\d+$/),
-      z.bigint(),
-    ])
+  fieldInputSchema
     .transform((n) => BigInt(n))
     .refine((n) => n >= min && n <= max, {
       message: `Value must be in range [${min}, ${max}]`,

@@ -1,3 +1,5 @@
+use std::{wrapping_mul, wrapping_add, wrapping_sub};
+
 fn main(x: Field, y: pub Field) {
     assert(x != y);
 }
@@ -9,7 +11,8 @@ fn test_main() {
 
 #[test]
 fn test_temp() {
-    let a: Field = 300;
-    let res: [u8; 40] = a.to_be_bytes();
+    let a: u8 = 100;
+    let b: u8 = 200;
+    let res: u8 = wrapping_mul(a, b);
     print(res);
 }

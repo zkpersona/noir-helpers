@@ -17,12 +17,6 @@ describe('Field Data Type Tests', () => {
     expect(field.toString()).equals('42');
   });
 
-  it('should throw error for negative input', () => {
-    expect(() => new Field(-1)).toThrowError(
-      'Field input must be non-negative'
-    );
-  });
-
   it('should throw error for non-integer input', () => {
     expect(() => new Field(1.5)).toThrowError('Field input must be an integer');
   });

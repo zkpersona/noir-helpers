@@ -1,6 +1,6 @@
+import { inspect } from 'node:util';
 import type { Bit } from '~/types';
 import { type FieldInput, FieldValidator } from './zod';
-import { inspect } from 'node:util';
 
 /**
  * Represents a finite field element used in noir.
