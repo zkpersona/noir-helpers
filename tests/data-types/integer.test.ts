@@ -52,6 +52,20 @@ describe('Integer Data Type Tests', () => {
       'Value must be in range [-9223372036854775808, 9223372036854775807]'
     );
   });
+  it('should throw on overflow', () => {
+    const a = new U8(255);
+    expect(() => a.add(1)).toThrowError('Value must be in range [0, 255]');
+    const b = new U16(65535);
+    expect(() => b.add(1)).toThrowError('Value must be in range [0, 65535]');
+    const c = new U32(4294967295n);
+    expect(() => c.add(1)).toThrowError(
+      'Value must be in range [0, 4294967295]'
+    );
+    const d = new U64(18446744073709551615n);
+    expect(() => d.add(1)).toThrowError(
+      'Value must be in range [0, 18446744073709551615]'
+    );
+  });
   it('should perform wrapping addition', () => {
     const a = new U8(100);
     const b = new U8(200);

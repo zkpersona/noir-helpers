@@ -24,7 +24,7 @@ import { type FieldInput, FieldValidator } from './zod';
  */
 export class Field {
   /** The internal bigint representation of the field value */
-  protected readonly value: bigint;
+  readonly value: bigint;
 
   /** The maximum bit size of a Field */
   static readonly MAX_BIT_SIZE = 254n;
