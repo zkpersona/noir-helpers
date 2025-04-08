@@ -67,6 +67,13 @@ export class BoundedVec<T extends DataType> {
   }
 
   /**
+   * Returns the internal storage for the vector.
+   */
+  storage(): T[] {
+    return this.items;
+  }
+
+  /**
    * Retrieves the element at the specified index.
    *
    * @param index - The zero-based index of the element to retrieve
@@ -180,7 +187,7 @@ export class BoundedVec<T extends DataType> {
    */
   toJSON(): object {
     return {
-      storage: this.toArray().map((item) => toJSON(item)),
+      storage: this.storage().map((item) => toJSON(item)),
       len: this.length,
     };
   }
