@@ -1,3 +1,5 @@
+import type { InputMap } from '@noir-lang/noir_js';
+import type { InputValue } from '~/types';
 import { FixedSizeArray } from './array';
 import { Bool } from './bool';
 import { BoundedVec } from './bounded-vec';
@@ -17,7 +19,7 @@ export type StructMap = {
   [key: string]: DataType;
 };
 
-export function toJSON(value: DataType): object | string | boolean {
+export const getInputRepresentation = (value: DataType): InputValue => {
   if (value instanceof AbstractInteger) {
     return value.toString();
   }
@@ -38,18 +40,21 @@ export function toJSON(value: DataType): object | string | boolean {
     return value.toJSON();
   }
 
-  // Recursively process the properties of the object
   if (typeof value === 'object' && value !== null) {
-    // If the value is a StructMap (an object), recursively process its properties
-    const result: { [key: string]: string | object | boolean } = {};
+    const result: InputValue = {};
     for (const [key, val] of Object.entries(value)) {
-      result[key] = toJSON(val);
+      result[key] = getInputRepresentation(val);
     }
     return result;
   }
+
   throw new Error(
     `Invalid value type: ${value === null ? 'null' : typeof value}`
   );
+};
+
+export function toJSON(value: StructMap): InputMap {
+  return getInputRepresentation(value) as InputMap;
 }
 
 export * from './field';

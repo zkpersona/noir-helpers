@@ -1,4 +1,5 @@
-import { type DataType, toJSON } from '.';
+import type { InputValue } from '~/types';
+import { type DataType, getInputRepresentation } from '.';
 
 /**
  * A bounded vector implementation that maintains a fixed maximum capacity
@@ -186,11 +187,11 @@ export class BoundedVec<T extends DataType> {
    * The JSON object contains both the elements and the current length.
    * Each element is converted to its JSON form using the toJSON function.
    *
-   * @returns A JSON object containing the vector's elements and length
+   * @returns Noir Circuit Input representation of the BoundedVec
    */
-  toJSON(): object {
+  toJSON(): InputValue {
     return {
-      storage: this.storage().map((item) => toJSON(item)),
+      storage: this.storage().map((item) => getInputRepresentation(item)),
       len: this.length,
     };
   }

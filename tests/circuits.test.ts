@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { Prover } from '../src';
+import { Prover, U8, toJSON } from '../src';
 
 import circuit from '../target/circuits.json' assert { type: 'json' };
 
 import type { CompiledCircuit } from '@noir-lang/noir_js';
 
-const inputs = { x: '1', y: '2' };
+const inputs = { x: new U8(1), y: new U8(2) };
 
 describe('Circuit Proof Verification', () => {
   let prover: Prover;
@@ -16,14 +16,16 @@ describe('Circuit Proof Verification', () => {
   });
 
   it('should prove using honk backend', async () => {
-    const proof = await prover.fullProve(inputs, { type: 'honk' });
+    const parsedInputs = toJSON(inputs);
+    const proof = await prover.fullProve(parsedInputs, { type: 'honk' });
     const isVerified = await prover.verify(proof, { type: 'honk' });
 
     expect(isVerified).toBe(true);
   });
 
   it('should prove using plonk backend', async () => {
-    const proof = await prover.fullProve(inputs, { type: 'plonk' });
+    const parsedInputs = toJSON(inputs);
+    const proof = await prover.fullProve(parsedInputs, { type: 'plonk' });
     const isVerified = await prover.verify(proof, { type: 'plonk' });
 
     expect(isVerified).toBe(true);

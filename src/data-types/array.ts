@@ -1,4 +1,4 @@
-import { type DataType, toJSON } from '.';
+import { type DataType, getInputRepresentation } from '.';
 
 /**
  * A fixed-size array implementation that maintains a constant length throughout its lifetime.
@@ -118,7 +118,7 @@ export class FixedSizeArray<T extends DataType> {
    *
    * @returns An array containing the JSON representation of each element
    */
-  toJSON(): ReturnType<typeof toJSON>[] {
-    return this.items.map(toJSON);
+  toJSON(): ReturnType<typeof getInputRepresentation>[] {
+    return this.items.map(getInputRepresentation);
   }
 }
