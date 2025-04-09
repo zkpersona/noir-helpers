@@ -192,7 +192,7 @@ This outputs the following JSON object:
 </details>
 <br />
 
-Supported types: `Field`, `U8`, `U16`, `U32`, `U64`, `I8`, `I16`, `I32`, `I64`, `Bool`, `Str`, `FixedArray`.
+Supported types: `Field`, `U1`, `U8`, `U16`, `U32`, `U64`, `I1`, `I8`, `I16`, `I32`, `I64`, `Bool`, `Str`, `FixedArray`.
 
 ---
 

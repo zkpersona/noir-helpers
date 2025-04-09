@@ -168,6 +168,15 @@ export abstract class AbstractInteger extends Field {
 }
 
 /**
+ * 1-bit unsigned integer type.
+ * Range: 0 to 1
+ */
+export class U1 extends AbstractInteger {
+  protected static override MAX_VALUE = 1n;
+  protected static override MIN_VALUE = 0n;
+}
+
+/**
  * 8-bit unsigned integer type.
  * Range: 0 to 255
  */
@@ -201,6 +210,15 @@ export class U32 extends AbstractInteger {
 export class U64 extends AbstractInteger {
   protected static override MAX_VALUE = 18446744073709551615n;
   protected static override MIN_VALUE = 0n;
+}
+
+/**
+ * 1-bit signed integer type.
+ * Range: -1 to 0
+ */
+export class I1 extends AbstractInteger {
+  protected static override MAX_VALUE = 0n;
+  protected static override MIN_VALUE = -0n;
 }
 
 /**
