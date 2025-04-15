@@ -29,9 +29,7 @@
   },
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
-  "files": [
-    "dist/**"
-  ],
+  "files": ["dist/**"],
   "scripts": {
     "build": "tsup",
     "dev": "vitest",
@@ -49,7 +47,7 @@
     "klarity": "^0.0.3",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.4"
+    "vitest": "^3.0.5"
   },
   "dependencies": {
     "@aztec/bb.js": "^0.84.0",
