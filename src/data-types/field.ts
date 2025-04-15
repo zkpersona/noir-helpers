@@ -341,21 +341,12 @@ export class Field {
   }
 
   /**
-   * Serializes the field value to a JSON string.
-   *
-   * @returns The field value as a decimal string
-   */
-  toJSON(): string {
-    return this.value.toString();
-  }
-
-  /**
    * Returns a string representation of the field value.
    *
    * @returns The field value as a decimal string
    */
   toString(): string {
-    return this.toJSON();
+    return this.value.toString(10);
   }
 
   /**
@@ -364,11 +355,18 @@ export class Field {
    * @param length - Optional length in bytes to pad the hex string to
    * @returns The field value as a hexadecimal string with '0x' prefix
    */
-  toHex(length?: number): string {
-    const len = length ?? 32;
-    let hex = this.value.toString(16);
-    hex = hex.padStart(len * 2, '0');
+  toHex(): string {
+    const hex = this.value.toString(16);
     return `0x${hex}`;
+  }
+
+  /**
+   * Converts the field value to its Circuit Input representation.
+   * Returns the field value as a hexadecimal string.
+   *
+   */
+  toCircuitInputs(): string {
+    return this.toHex();
   }
 
   /**

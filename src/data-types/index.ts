@@ -11,8 +11,8 @@ export type DataType =
   | Field
   | Bool
   | Str
-  | BoundedVec<DataType>
-  | FixedSizeArray<DataType>
+  | BoundedVec<DataType, number>
+  | FixedSizeArray<DataType, number>
   | StructMap;
 
 export type StructMap = {
@@ -24,20 +24,20 @@ export const getInputRepresentation = (value: DataType): InputValue => {
     return value.toString();
   }
   if (value instanceof Bool) {
-    return value.toJSON();
+    return value.toCircuitInputs();
   }
   if (value instanceof Str) {
-    return value.toJSON();
+    return value.toCircuitInputs();
   }
   if (value instanceof Field) {
-    return value.toHex();
+    return value.toCircuitInputs();
   }
   if (value instanceof BoundedVec) {
-    return value.toJSON();
+    return value.toCircuitInputs();
   }
 
   if (value instanceof FixedSizeArray) {
-    return value.toJSON();
+    return value.toCircuitInputs();
   }
 
   if (typeof value === 'object' && value !== null) {
@@ -53,7 +53,7 @@ export const getInputRepresentation = (value: DataType): InputValue => {
   );
 };
 
-export function toJSON(value: StructMap): InputMap {
+export function toCircuitInputs(value: StructMap): InputMap {
   return getInputRepresentation(value) as InputMap;
 }
 

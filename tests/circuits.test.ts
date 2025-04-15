@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { Prover, U8, toJSON } from '../src';
+import { Prover, U8, toCircuitInputs } from '../src';
 
 import circuit from '../target/circuits.json' assert { type: 'json' };
 
@@ -16,7 +16,7 @@ describe('Circuit Proof Verification', () => {
   });
 
   it('should prove using honk backend', async () => {
-    const parsedInputs = toJSON(inputs);
+    const parsedInputs = toCircuitInputs(inputs);
     const proof = await prover.fullProve(parsedInputs, { type: 'honk' });
     const isVerified = await prover.verify(proof, { type: 'honk' });
 
@@ -24,7 +24,7 @@ describe('Circuit Proof Verification', () => {
   });
 
   it('should prove using plonk backend', async () => {
-    const parsedInputs = toJSON(inputs);
+    const parsedInputs = toCircuitInputs(inputs);
     const proof = await prover.fullProve(parsedInputs, { type: 'plonk' });
     const isVerified = await prover.verify(proof, { type: 'plonk' });
 

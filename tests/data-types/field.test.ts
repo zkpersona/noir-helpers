@@ -133,7 +133,7 @@ describe('Field Data Type Tests', () => {
     const exp = new Field(2 ** 32 - 1);
     const res = base.pow32(exp);
     expect(res.toHex()).equals(
-      '0x04aa46b15346c19ec569802276feb4778e1921469782ef1287716e7712fb8f70'
+      '0x4aa46b15346c19ec569802276feb4778e1921469782ef1287716e7712fb8f70'
     );
   });
 
@@ -211,7 +211,7 @@ describe('Field Data Type Tests', () => {
 
     const result = large2.sub(large1);
     expect(result.toHex()).equals(
-      '0x0acebbaf4c77ac3e5ef3a6bbdef2c677a2b86c827ff5e99e6f8d89bd10a4d3d3'
+      '0xacebbaf4c77ac3e5ef3a6bbdef2c677a2b86c827ff5e99e6f8d89bd10a4d3d3'
     );
   });
 
@@ -249,7 +249,7 @@ describe('Field Data Type Tests', () => {
     const b = new Field(2);
     const c = a.div(b);
     expect(c.toHex()).equals(
-      '0x0acebbaf4c77ac3e5ef3a6bbdef2c677a2b86c827ff5e99e6f8d89bd10a4d3d3'
+      '0xacebbaf4c77ac3e5ef3a6bbdef2c677a2b86c827ff5e99e6f8d89bd10a4d3d3'
     );
   });
 

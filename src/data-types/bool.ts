@@ -46,12 +46,12 @@ export class Bool {
   }
 
   /**
-   * Converts the boolean to its JSON representation.
+   * Converts the boolean to its Circuit Input representation.
    * Returns the underlying primitive boolean value.
    *
    * @returns The boolean value as a primitive
    */
-  toJSON(): boolean {
+  toCircuitInputs(): boolean {
     return this.val;
   }
 }

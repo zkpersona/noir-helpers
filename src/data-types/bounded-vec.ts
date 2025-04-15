@@ -8,8 +8,9 @@ import { type DataType, getInputRepresentation } from '.';
  * on the number of elements it can contain.
  *
  * @template T - The type of elements stored in the vector, must extend DataType
+ * @template N - The type of the maximum size of the vector, must extend number
  */
-export class BoundedVec<T extends DataType> {
+export class BoundedVec<T extends DataType, N extends number> {
   /** Maximum number of elements the vector can hold */
   private readonly maxSize: number;
   /** Current number of elements in the vector */
@@ -22,16 +23,18 @@ export class BoundedVec<T extends DataType> {
    * The vector is initialized with default values up to the maximum size.
    *
    * @param maxSize - The maximum number of elements the vector can hold
-   * @param defaultValueFactory - A function that creates default values for initialization
+   * @param defaultValue - Default value for initialization
+   * @param initialItems - Initial items to add to the vector
    * @throws {Error} If maxSize is negative
    */
-  constructor(maxSize: number, defaultValueFactory: () => T) {
+  constructor(maxSize: N, defaultValue: T, initialItems: T[] = []) {
     if (maxSize < 0) {
       throw new Error('Max size must be non-negative');
     }
     this.maxSize = maxSize;
-    this.items = Array.from({ length: maxSize }, defaultValueFactory);
+    this.items = Array.from({ length: maxSize }, () => defaultValue);
     this.length = 0;
+    this.extendFromArray(initialItems);
   }
 
   /**
@@ -168,7 +171,7 @@ export class BoundedVec<T extends DataType> {
    * @param vec - The bounded vector whose elements should be added
    * @throws {Error} If adding the elements would exceed the vector's maximum capacity
    */
-  extendFromVec(vec: BoundedVec<T>): void {
+  extendFromVec(vec: BoundedVec<T, N>): void {
     this.extendFromArray(vec.toArray());
   }
 
@@ -183,16 +186,15 @@ export class BoundedVec<T extends DataType> {
   }
 
   /**
-   * Converts the vector to a JSON representation.
+   * Converts the BoundedVec to a Circuit Input representation.
    * The JSON object contains both the elements and the current length.
-   * Each element is converted to its JSON form using the toJSON function.
    *
    * @returns Noir Circuit Input representation of the BoundedVec
    */
-  toJSON(): InputValue {
+  toCircuitInputs() {
     return {
       storage: this.storage().map((item) => getInputRepresentation(item)),
       len: this.length,
-    };
+    } satisfies InputValue;
   }
 }

@@ -63,12 +63,10 @@ export class Str {
   }
 
   /**
-   * Converts the string to its JSON representation.
+   * Converts the string to its Circuit Input representation.
    * Returns the underlying primitive string value.
-   *
-   * @returns The string value as a primitive
    */
-  toJSON(): string {
+  toCircuitInputs(): string {
     return this.val;
   }
 }
