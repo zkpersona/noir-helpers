@@ -191,10 +191,13 @@ export class BoundedVec<T extends DataType, N extends number> {
    *
    * @returns Noir Circuit Input representation of the BoundedVec
    */
-  toCircuitInputs() {
+  toCircuitInputs(): {
+    storage: InputValue[];
+    len: number;
+  } {
     return {
       storage: this.storage().map((item) => getInputRepresentation(item)),
       len: this.length,
-    } satisfies InputValue;
+    };
   }
 }

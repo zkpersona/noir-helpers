@@ -50,7 +50,7 @@ export class FixedSizeArray<T extends DataType, N extends number> {
     return this.items.map(callback);
   }
 
-  toCircuitInputs() {
-    return this.items.map(getInputRepresentation) satisfies InputValue;
+  toCircuitInputs(): InputValue[] {
+    return this.items.map(getInputRepresentation);
   }
 }
