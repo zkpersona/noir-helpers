@@ -1,6 +1,6 @@
 {
   "name": "@zkpersona/noir-helpers",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Helpers utilities for Noir proofs and input generation.",
   "keywords": [
     "noir",
@@ -29,7 +29,9 @@
   },
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
-  "files": ["dist/**"],
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "vitest",

@@ -1,5 +1,13 @@
 # @zkpersona/noir-helpers
 
+## 0.2.1
+
+### Patch Changes
+
+- 7c107e3: - Update BoundedVec to use Default Value instead of Default Value Factory.
+  - Update BoundedVec to have initial items as constructor argument.
+  - Rename `toJSON` to `toCircuitInputs`
+
 ## 0.2.0
 
 ### Minor Changes
